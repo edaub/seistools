@@ -9,3 +9,4 @@ from . import catalog
 from . import coulomb
 from . import stress
 from . import fdfault
+from . import source

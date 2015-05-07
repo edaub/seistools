@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.integrate import simps
 
-def generate_profile(npoints, length, alpha, window, seed=None):
+def generate_profile(npoints, length, alpha, window, h = 1., seed=None):
     """
     Generates fractal fault profile with zero mean and a given amplitude/wavelength ratio
     Inputs:
@@ -17,7 +17,7 @@ def generate_profile(npoints, length, alpha, window, seed=None):
     phase = 2.*np.pi*prng.rand(npoints+window-1)
     k = np.fft.fftfreq(npoints+window-1,length/float(npoints+window-2))
     amp = np.zeros(npoints+window-1)
-    amp[1:] = (2.*np.pi)**0.5*alpha*prng.rand(npoints+window-2)/np.abs(k[1:])**1.5/np.sqrt(length)
+    amp[1:] = 0.02*alpha*prng.normal(loc = 1., size = npoints+window-2)/np.abs(k[1:])**(0.5*(1.+2.*h))*np.sqrt(length)
     f = amp*np.exp(np.complex(0., 1.)*phase)
     f = np.real(np.fft.fft(f))
     f = np.convolve(f,np.ones(window),'valid')/float(window)
