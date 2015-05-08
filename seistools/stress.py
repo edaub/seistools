@@ -19,7 +19,7 @@ def calc_ds_2d(slip, dx, mu, poisson = 0.):
 
     return np.real(np.fft.ifft(f))    
 
-def calc_ds_3d(slip_x, slip_y, dx, mu, poisson):
+def calc_ds_3d(slip_x, slip_y, dx, dy, mu, poisson):
     """
     Calculates stress change due to slip on a planar fault (using FFT method)
     Inputs:
@@ -31,15 +31,18 @@ def calc_ds_3d(slip_x, slip_y, dx, mu, poisson):
     Returns:
     static stress change from fault slip
     """
-    k = np.fft.fftfreq(len(slip), dx)
-    m = np.fft.fftfreq(len(slip[0]), dx)
+    k = np.fft.fftfreq(len(slip_x), dx)
+    m = np.fft.fftfreq(len(slip_x[0]), dy)
 
     kxy, mxy = np.meshgrid(k, m, indexing='ij')
+
+    kmag = np.sqrt(kxy**2+mxy**2)
+    kmag[0,0] = 1.
 
     fx = np.fft.fft2(slip_x)
     fy = np.fft.fft2(slip_y)
 
-    sx = -mu/2./np.sqrt(kxy**2+mxy**2)*(1./(1.-poisson)*(kxy**2*fx+mxy*kxy*fy)+(mxy**2*fx-mxy*kxy*fy))
-    sy = -mu/2./np.sqrt(kxy**2+mxy**2)*(1./(1.-poisson)*(mxy**2*fy+mxy*kxy*fx)+(kxy**2*fy-mxy*kxy*fx))
+    sx = -mu/2./kmag*(1./(1.-poisson)*(kxy**2*fx+mxy*kxy*fy)+(mxy**2*fx-mxy*kxy*fy))
+    sy = -mu/2./kmag*(1./(1.-poisson)*(mxy**2*fy+mxy*kxy*fx)+(kxy**2*fy-mxy*kxy*fx))
 
     return np.real(np.fft.ifft2(sx)), np.real(np.fft.ifft2(sy))

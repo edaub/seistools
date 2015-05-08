@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.integrate import simps
+from scipy.signal import filtfilt, butter
 
 def generate_profile(npoints, length, alpha, window, h = 1., seed=None):
     """
@@ -14,13 +15,14 @@ def generate_profile(npoints, length, alpha, window, h = 1., seed=None):
     heights of fault profile (array-like)
     """
     prng = np.random.RandomState(seed)
-    phase = 2.*np.pi*prng.rand(npoints+window-1)
-    k = np.fft.fftfreq(npoints+window-1,length/float(npoints+window-2))
-    amp = np.zeros(npoints+window-1)
-    amp[1:] = 0.02*alpha*prng.normal(loc = 1., size = npoints+window-2)/np.abs(k[1:])**(0.5*(1.+2.*h))*np.sqrt(length)
+    phase = 2.*np.pi*prng.rand(npoints)
+    k = np.fft.fftfreq(npoints,length/float(npoints-1))
+    amp = np.zeros(npoints)
+    amp[1:] = 0.02*alpha*prng.normal(loc = 1., size = npoints-1)*np.abs(k[1:])**(-0.5*(1.+2.*h))*np.sqrt(length)
     f = amp*np.exp(np.complex(0., 1.)*phase)
     f = np.real(np.fft.fft(f))
-    f = np.convolve(f,np.ones(window),'valid')/float(window)
+    b, a = butter(2, 2./float(window), output='ba')
+    f = filtfilt(b, a, f)
     return f-f[0]-(f[-1]-f[0])/length*np.linspace(0., length, npoints)
 
 def calc_diff(f, dx):
