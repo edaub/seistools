@@ -215,3 +215,9 @@ class sourcemodel(object):
             return self.slip*np.sin(np.pi/180.*self.rake)
         else:
             return self.slip[index]*np.sin(np.pi/180.*self.rake[index])
+
+    def find_strike(self, lat, lon, depth):
+        "Converts latitude, longitude, and depth into strike coordinates using linear interpolation"
+
+        return ((lat-self.get_lat((0,0)))/(self.get_lat((-1,0))-self.get_lat((0,0)))*
+             (self.get_strike((-1,0))-self.get_strike((0,0))))+self.get_strike((0,0))
