@@ -5,7 +5,7 @@ import re
 class catalog(object):
     "Class representing a seismic catalog"
     def __init__(self, nevents, time, mag, lat, lon, depth):
-        "Initialize catalog with arrays holding time, magnitude, latitude, longitude, and depth"
+        "Initialize catalog with arrays holding time, magnitude, latitude, longitude, depth, and declustering info"
         assert len(time) == nevents
         assert len(mag) == nevents
         assert len(lat) == nevents
@@ -17,6 +17,8 @@ class catalog(object):
         self.lat = lat
         self.lon = lon
         self.depth = depth
+        self.declustered = False
+        self.aftershock = np.zeros(nevents, dtype = int)
 
     def get_nevents(self):
         "Returns number of events"
@@ -57,12 +59,78 @@ class catalog(object):
         else:
             return self.depth[index]
 
+    def get_mainshocks(self):
+        "returns array indicating which events are mainshocks"
+        if self.declustered == False:
+            print("Must decluster catalog to get mainshocks")
+        else:
+            return -self.aftershock.astype(bool)
+
+    def get_aftershocks(self):
+        "returns array indicating which events are aftershocks"
+        if self.declustered == False:
+            print("Must decluster catalog to get aftershocks")
+        else:
+            return self.aftershock.astype(bool)
+
+    def decluster(self, timefunc = None, distfunc = None):
+        """
+        Decluster catalog using Gardner and Knopoff method
+        Can supply functions for time (in days) and distance (in km) as a function of magnitude, otherwise
+        uses G&K default values for Southern California
+        """
+
+        def latlondist(lat1, lon1, depth1, lat2, lon2, depth2):
+            if (np.sin(lat1*np.pi/180.)*np.sin(lat2*np.pi/180.)+np.cos(lat1*np.pi/180.)*np.cos(lat2*np.pi/180.)*np.cos((lon1-lon2)*np.pi/180.)>1.):
+                dist = np.abs(depth1-depth2)
+            else:
+                alpha = np.arccos(np.sin(lat1*np.pi/180.)*np.sin(lat2*np.pi/180.)+np.cos(lat1*np.pi/180.)*np.cos(lat2*np.pi/180.)*np.cos((lon1-lon2)*np.pi/180.))
+                dist = np.sqrt(((6371.-depth1)-(6371.-depth2)*np.cos(alpha))**2.+((6371.-depth2)*np.sin(alpha))**2.)
+            dist = np.arccos(np.sin(lat1*np.pi/180.)*np.sin(lat2*np.pi/180.)+np.cos(lat1*np.pi/180.)*np.cos(lat2*np.pi/180.)*np.cos((lon1-lon2)*np.pi/180.))*6371.
+            return dist
+
+        if timefunc is None:
+            timefunc = lambda x: 10.**(0.5505*x-0.5647)
+        if distfunc is None:
+            distfunc = lambda x: 10.**(0.1274*x+0.9692)
+
+        for i in range(0,self.nevents-1):
+            for j in range(i+1,self.nevents):
+                dist = latlondist(self.lat[i], self.lon[i], self.depth[i], self.lat[j], self.lon[j], self.depth[j])
+                dt = (self.time[j]-self.time[i]).astype(float)/1000./3600./24.
+                if (dt < timefunc(self.mag[i]) and dist < distfunc(self.mag[i])):
+                    if (self.aftershock[i] == 0):
+                        self.aftershock[j] = i+1
+                    else:
+                        self.aftershock[j] = self.aftershock[i]
+
+        declustind = np.bincount(self.aftershock)
+        declustind[0] = 0
+        clusters = np.nonzero(declustind)[0]
+
+        for i in range(0,len(clusters)):
+            clustind = np.nonzero(self.aftershock == clusters[i])[0]
+            clustind = np.insert(clustind,0,clusters[i]-1)
+            self.aftershock[clustind] = 0
+            clustind = np.delete(clustind,np.argmax(self.mag[clustind]))
+            self.aftershock[clustind] = 1
+
+        print('Declustering Information:\nTotal number of events = '+str(self.nevents)+
+              '\nNumber of main shocks = '+str(self.nevents-np.sum(self.aftershock))+
+              '\nNumber of aftershocks = '+str(np.sum(self.aftershock)))
+        self.declustered = True
+
     def get_subcatalog(self, indices):
         "Returns a subcatalog given a list of indices"
-        assert min(indices) >= 0
-        assert max(indices) < self.nevents
-        return catalog(self, len(indices), self.get_time(indices), self.get_mag(indices),
+        if len(indices) == self.nevents:
+            newcat = catalog(np.sum(indices), self.get_time(indices), self.get_mag(indices),
                        self.get_lat(indices), self.get_lon(indices), self.get_depth(indices))
+        else:
+            assert min(indices) >= 0
+            assert max(indices) < self.nevents
+            newcat = catalog(len(indices), self.get_time(indices), self.get_mag(indices),
+                       self.get_lat(indices), self.get_lon(indices), self.get_depth(indices))
+        return newcat
     
     def __str__(self):
         "Returns a string representation of a catalog"
@@ -79,10 +147,43 @@ def load_catalog(filename, cattype, years = None):
     """
     if cattype == 'norcal':
         newcat = _load_norcal(filename, years)
+    elif cattype == 'pager':
+        newcat = _load_pager(filename, years)
     else:
         raise ValueError ("Unknown catalog type")
 
     return newcat
+
+def _load_pager(filename, years = None):
+    "Read catalog formatted from PAGER data"
+
+    f = open('/Users/edaub/Documents/2009-2012/bigquakes/data/'+filename, 'r')
+
+    nevents = 0
+
+    for line in f:
+        nevents += 1
+
+    time = np.empty(nevents, dtype='datetime64[ms]')
+    lat = np.empty(nevents)
+    lon = np.empty(nevents)
+    depth = np.empty(nevents)
+    mag = np.empty(nevents)
+
+    f.seek(0)
+
+    for i in range(nevents):
+        event = f.readline()
+        event = event.split()
+        time[i] = event[0]
+        lat[i] = float(event[1])
+        lon[i] = float(event[2])
+        depth[i] = float(event[3])
+        mag[i] = float(event[4])
+
+    f.close()
+
+    return catalog(nevents, time, mag, lat, lon, depth)
 
 def _load_norcal(filename, years = None):
     "Read Northern California format Catalog (relocated), returning catalog object"
@@ -125,5 +226,5 @@ def _load_norcal(filename, years = None):
 
     f.close()
 
-    return catalog(nevents, time, mag, lat, lon,depth)
+    return catalog(nevents, time, mag, lat, lon, depth)
     
