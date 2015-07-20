@@ -12,13 +12,12 @@ class rkcoeff:
         self.cerr = np.array([37./378.-2825./27648., 0., 250./621.-18575./48384.,
                               125./594.-13525./55296., -277./14336, 512./1771.-0.25])
 
-def rk_time_step(x, dt, xfuncs, params):
+def rk_time_step(x, dt, xfunc, params):
     """
     takes a 4th order Cash-Karp time step for a multi variable ODE
     x is a numpy array of current values
-    xfuncs is a list of functions for updating values
-    (note: if x is multidimensional, list must follow c ordering of array)
-    params holds parameter values (passed to all functions)
+    xfuncs is a function for updating values (returns array-like derivative)
+    params holds parameter values (passed to function)
     returns new values of variables and error estimate
     """
 
@@ -32,8 +31,7 @@ def rk_time_step(x, dt, xfuncs, params):
         xtemp = x
         for j in range(rk.nstages-1):
             xtemp += rk.b[i, j]*kx[j,:]
-        for j in range(kx.shape[1]):
-            kx[i,j] = dt*xfunc[j](xtemp, params)
+        kx[i,j] = dt*xfunc(xtemp, params)
 
     # calculate new values and error estimate
 
@@ -49,11 +47,11 @@ def rk_time_step(x, dt, xfuncs, params):
     return xnew, maxerr
 
 
-def rk54(xvals, xfuncs, params, ttot, tol = 1.e-6, maxsteps = 1000000):
+def rk54(xvals, xfunc, params, ttot, tol = 1.e-6, maxsteps = 1000000):
     """
     integrates a system of ODEs using the Cash-Karp 5/4 adaptive method
     xvals is initial values
-    xfuncs is a list of functions for variable derivatives (if xvals is multidimensional, must be in c order)
+    xfunc is a function for variable derivatives
     params is a class holding parameters
     ttot is total integration time
     tol is desired tolerance (optional)
