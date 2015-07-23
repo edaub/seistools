@@ -51,6 +51,20 @@ def calc_diff(f, dx):
 
     return df
 
+def generate_normals(x, y):
+    """
+    Returns components nx, ny of normal vectors given x (dependent) and y (independent) variables
+    x and y must be array-like of the same length
+    x must be uniformly spaced
+    nx and ny are array-like and of the same length as x and y
+    """
+    dx = x[2]-x[1]
+    m = calc_diff(y, dx)
+    nx = -m/np.sqrt(1.+m**2)
+    ny = 1./np.sqrt(1.+m**2)
+
+    return nx, ny
+
 def calc_hrms(x,y):
     """
     Returns RMS height of profile y(x)
