@@ -51,17 +51,30 @@ def calc_diff(f, dx):
 
     return df
 
-def generate_normals(x, y):
+def generate_normals_2d(x, y, direction):
     """
-    Returns components nx, ny of normal vectors given x (dependent) and y (independent) variables
+    Returns components of normal vectors given coordinates x and y
     x and y must be array-like of the same length
-    x must be uniformly spaced
+    direction indicates whether the surface has a normal in the 'x' direction or 'y' direction
+    coordinates normal to direction must be evenly spaced
     nx and ny are array-like and of the same length as x and y
     """
-    dx = x[2]-x[1]
-    m = calc_diff(y, dx)
-    nx = -m/np.sqrt(1.+m**2)
-    ny = 1./np.sqrt(1.+m**2)
+    assert x.shape == y.shape, "x and y must have the same length"
+    assert len(x.shape) == 1 and len(y.shape) == 1, "x and y must be 1d arrays"
+    assert direction == 'x' or direction == 'y', "direction must be 'x' or 'y'"
+
+    if direction == 'x':
+        dx = y[2]-y[1]
+        assert(dx > 0.)
+        m = calc_diff(x, dx)
+        ny = -m/np.sqrt(1.+m**2)
+        nx = 1./np.sqrt(1.+m**2)
+    else:
+        dx = x[2]-x[1]
+        assert(dx > 0.)
+        m = calc_diff(y, dx)
+        nx = -m/np.sqrt(1.+m**2)
+        ny = 1./np.sqrt(1.+m**2)
 
     return nx, ny
 
