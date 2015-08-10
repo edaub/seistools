@@ -92,16 +92,27 @@ def stz_2d_der(x, params):
 
     # set loading points to have v0
 
-    v[0:nload] = params.v0
-    v[-nload:-1] = params.v0
+    v[:params.nload] = params.v0
+    v[-params.nload:] = params.v0
 
-    f = stress.calc_ds_2d(v, params.dx, params.mu, params.poisson)
+    f = stress.calc_ds_2d(v-params.v0, params.dx, params.mu, params.poisson)
 
     for i in range(xsize):
         dx[i] = dsdt_2d(s[i], chi[i], f[i], params)
         dx[xsize+i] = dchidt(s[i], chi[i], params)
 
     return dx
+
+def calc_v(s, chi, params):
+    "calculates strain rate given stress and effective temperature"
+
+    v = np.empty(s.shape)
+
+    for i in range(s.shape[0]):
+        for j in range(s.shape[1]):
+            v[i,j] = vpl(s[i,j], chi[i,j], params)
+
+    return v
 
 def integrate_stz_2d(u0, chi0, params, ttot, tol = 1.e-6, maxsteps = 1000000):
     """
@@ -117,12 +128,12 @@ def integrate_stz_2d(u0, chi0, params, ttot, tol = 1.e-6, maxsteps = 1000000):
 
     # set up array with initial conditions
 
-    x = np.empty(2, u0.size)
+    x = np.empty(2*u0.size)
 
-    x[:u0.size] = stress.calc_ds_2d(u0, params.dx, params.mu, params.poisson)
+    x[:u0.size] = stress.calc_ds_2d(u0, params.dx, params.mu, params.poisson)+1.1
     x[u0.size:] = chi0
 
     nt, t, x = integration.rk54(x, stz_2d_der, params, ttot, tol, maxsteps)
 
-    return nt, t, x[:u0.size], x[u0.size:]
+    return nt, t, x[:,:u0.size], x[:,u0.size:], calc_v(x[:,:u0.size], x[:,u0.size:], params)
     
