@@ -74,6 +74,10 @@ def dsdt_2d(s, chi, f, params):
     return ((f-params.coeff_v*dvpldchi(vpl(s, chi, params), s, chi, params)*dchidt(s, chi, params))/
             (1.+params.coeff_v*dvplds(vpl(s, chi, params), s, chi, params)))
 
+def dsdt_1d(s, chi, params):
+    "derivative of stress given stress, chi, and parameters"
+    return params.k*(params.v0-vpl(s, chi, params))
+
 def stz_2d_der(x, params):
     "wrapper function for calculating derivatives for adaptive rk integration of 2d continuum stz model"
 
@@ -103,7 +107,17 @@ def stz_2d_der(x, params):
 
     return dx
 
-def calc_v(s, chi, params):
+def stz_1d_der(x, params):
+    "wrapper function for calculating derivatives for adaptive rk integration of 1d stz model"
+
+    dx = np.empty(2)
+
+    dx[0] = dsdt_1d(x[0], x[1], params)
+    dx[1] = dchidt(x[0], x[1], params)
+
+    return dx
+
+def calc_v_2d(s, chi, params):
     "calculates strain rate given stress and effective temperature"
 
     v = np.empty(s.shape)
@@ -111,6 +125,16 @@ def calc_v(s, chi, params):
     for i in range(s.shape[0]):
         for j in range(s.shape[1]):
             v[i,j] = vpl(s[i,j], chi[i,j], params)
+
+    return v
+
+def calc_v_1d(s, chi, params):
+    "calculates strain rate given stress and effective temperature"
+
+    v = np.empty(s.shape)
+
+    for i in range(s.shape[0]):
+        v[i] = vpl(s[i], chi[i], params)
 
     return v
 
@@ -135,5 +159,13 @@ def integrate_stz_2d(u0, chi0, params, ttot, tol = 1.e-6, maxsteps = 1000000):
 
     nt, t, x = integration.rk54(x, stz_2d_der, params, ttot, tol, maxsteps)
 
-    return nt, t, x[:,:u0.size], x[:,u0.size:], calc_v(x[:,:u0.size], x[:,u0.size:], params)
+    return nt, t, x[:,:u0.size], x[:,u0.size:], calc_v_2d(x[:,:u0.size], x[:,u0.size:], params)
     
+def integrate_stz_1d(s0, chi0, params, ttot, tol = 1.e-6, maxsteps = 1000000):
+    "integrates STZ equations using Cash-Karp method"
+
+    x = np.array([s0, chi0])
+
+    nt, t, x = integration.rk54(x, stz_1d_der, params, ttot, tol, maxsteps)
+
+    return nt, t, x[:,0], x[:,1], calc_v_1d(x[:,0], x[:,1], params)

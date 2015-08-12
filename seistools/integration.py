@@ -31,6 +31,7 @@ def rk_time_step(x, dt, xfunc, params):
         xtemp = x[:]
         for j in range(rk.nstages-1):
             xtemp += rk.b[i, j]*kx[j,:]
+            print(xtemp)
         kx[i,:] = dt*xfunc(xtemp, params)
 
     # calculate new values and error estimate
@@ -47,7 +48,7 @@ def rk_time_step(x, dt, xfunc, params):
     return xnew, maxerr
 
 
-def rk54(xvals, xfunc, params, ttot, tol = 1.e-6, maxsteps = 1000000):
+def rk54(xvals, xfunc, params, ttot, tol = 1.e-6, maxsteps = 1000000, outstride = 1000000):
     """
     integrates a system of ODEs using the Cash-Karp 5/4 adaptive method
     xvals is initial values (array is flattened if it has a shape)
@@ -72,7 +73,7 @@ def rk54(xvals, xfunc, params, ttot, tol = 1.e-6, maxsteps = 1000000):
 
     # integrate forward in time
 
-    while (t[i] < ttot and i < maxsteps):
+    while (t[i] < ttot and i < maxsteps-1):
         xnew, error = rk_time_step(x[i,:], dt, xfunc, params)
 
         if (error > tol):
@@ -92,11 +93,12 @@ def rk54(xvals, xfunc, params, ttot, tol = 1.e-6, maxsteps = 1000000):
 
         dt = dtnew
 
-        if (i%10 == 0):
+        if (i%outstride == 0):
             print("Time (%) = "+str(t[i]/ttot)+", Step "+str(i))
 
     # return arrays and number of time steps
 
     if (t[i] < ttot):
         print("warning: reached maximum number of time steps")
-    return i, t[:i+1], x[:i+1,:]
+        
+    return i, t[:i], x[:i,:]
