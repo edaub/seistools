@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.integrate import simps
-import matplotlib.pyplot as plt
 
 def generate_profile(npoints, length, alpha, window, h = 1., seed=None):
     """
