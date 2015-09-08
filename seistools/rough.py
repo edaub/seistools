@@ -18,8 +18,8 @@ def generate_profile(npoints, length, alpha, window, h = 1., seed=None):
     k = np.fft.fftfreq(npoints,length/float(npoints-1))
     amp = np.zeros(npoints)
     nflt = npoints//window
-    amp[1:nflt] = 0.02*alpha*prng.lognormal(size = nflt-1)*np.abs(k[1:nflt])**(-0.5*(1.+2.*h))*np.sqrt(length)
-    amp[-nflt:] = 0.02*alpha*prng.lognormal(size = nflt)*np.abs(k[-nflt:])**(-0.5*(1.+2.*h))*np.sqrt(length)
+    amp[1:nflt] = 0.1*alpha*prng.rand(nflt-1)*np.abs(k[1:nflt])**(-0.5*(1.+2.*h))*np.sqrt(length)
+    amp[-nflt:] = 0.1*alpha*prng.rand(nflt)*np.abs(k[-nflt:])**(-0.5*(1.+2.*h))*np.sqrt(length)
     f = amp*np.exp(np.complex(0., 1.)*phase)
     f = np.real(np.fft.fft(f))
     return f-f[0]-(f[-1]-f[0])/length*np.linspace(0., length, npoints)
