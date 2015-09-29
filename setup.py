@@ -6,4 +6,4 @@ setup(name='seistools',
       author='Eric Daub',
       author_email='egdaub@memphis.edu',
       packages=['seistools'],
-      install_requires=['numpy', 'scipy',])
+      install_requires=['numpy', 'scipy', 'statsmodels'])

@@ -228,3 +228,58 @@ def _load_norcal(filename, years = None):
 
     return catalog(nevents, time, mag, lat, lon, depth)
     
+def calc_b(mag, complete = None):
+    "returns b-value calculated via the maximum entropy method"
+
+    if complete is None:
+        mag_copy = mag[:]
+    else:
+        mag_copy = mag[mag >= complete]
+
+    mavg = np.mean(mag_copy)
+    mc = np.min(mag_copy)-0.05
+    return 1./(mavg-mc)/np.log(10)
+
+def mc_maxcurv(mag):
+    """
+    determines completeness magnitude with maximum curvature method
+    returns completeness magnitude and b-value
+    """
+
+    mc = mode(mag)[0][0]
+    b = calc_b(mag, mc)
+
+    return mc, b
+
+def delta_b(mag, complete = None):
+    "returns uncertainty in b-value"
+
+    if complete is None:
+        mag_copy = mag[:]
+    else:
+        mag_copy = mag[mag >= complete]
+    
+    b = calc_b(mag)
+    return 2.3*b**2*np.std(mag)/np.sqrt(float(len(mag)-1))
+
+def mc_bvalstab(mag):
+    """
+    determines completeness magnitude using b-value stability method
+    returns completeness magnitude and b-value
+    """
+
+    mc = min(mag)-0.1
+    bavg = 1.5
+    bval = 1.
+    db = 0.
+
+    while np.abs(bavg-bval) > db:
+        mc += 0.1
+        bval = calc_b(mag, mc)
+        db = delta_b(mag, mc)
+        bavg = 0.
+        for j in range(6):
+            mctemp = mc+float(j)*0.1
+            bavg += calc_b(mag, mctemp)/6.
+
+    return mc, b

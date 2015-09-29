@@ -4,6 +4,7 @@ seistools is a collection of python functions and classes for analyzing earthqua
 requires numpy and scipy
 """
 
+from . import biax
 from . import rough
 from . import catalog
 from . import coulomb
