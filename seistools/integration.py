@@ -1,6 +1,59 @@
 import numpy as np
 
-class rkcoeff:
+class rk_ls(object):
+    "Class holding low storage RK integration variables, initialize with order (integer 1-4)"
+    def __init__(self, order):
+            assert(order == 1 or order == 2 or order == 3 or order == 4)
+            if order == 1:
+                    self.nstages = 1
+                    self.A = np.array([0.])
+                    self.B = np.array([1.])
+                    self.C = np.array([0., 1.])
+            elif order == 2:
+                    self.nstages = 2
+                    self.A = np.array([0., -1.])
+                    self.B = np.array([1., 0.5])
+                    self.C = np.array([0., 1., 1.])
+            elif order == 3:
+                    self.nstages = 3;
+                    self.A = np.array([0., -5./9., -153./128.])
+                    self.B = np.array([1./3., 15./16., 8./15.])
+                    self.C = np.array([0., 1./3., 3./4., 1.])
+            else:
+                    self.nstages = 5
+                    self.A = np.array([0., -567301805773./1357537059087.,
+                                       -2404267990393./2016746695238.,-3550918686646./2091501179385.,
+                                       -1275806237668./842570457699. ])
+                    self.B = np.array([1432997174477./9575080441755.,
+                                       5161836677717./13612068292357., 1720146321549./2090206949498.,
+                                       3134564353537./4481467310338., 2277821191437./14882151754819.])
+                    self.C = np.array([0., 1432997174477./9575080441755.,
+                                       2526269341429./6820363962896., 2006345519317./3224310063776.,
+                                       2802321613138./2924317926251., 1.])
+
+    def get_nstages(self):
+        "returns number of internal stages"
+        return self.nstages
+
+    def get_A(self, stage):
+        "returns A coefficient for a given stage"
+        assert(stage >= 0 and stage < self.nstages)
+        return self.A[stage]
+
+    def get_B(self, stage):
+        "returns B coefficient for a given stage"
+        assert(stage >= 0 and stage < self.nstages)
+        return self.B[stage]
+
+    def get_C(self, stage):
+        "returns C coefficient for a given stage"
+        assert(stage >= 0 and stage <= self.nstages)
+        return self.C[stage]
+
+    def __str__(self):
+        return "RK class with "+str(self.nstages)+" stages"
+
+class rk54(object):
     "class holding adaptive RK coefficients"
     def __init__(self):
         self.nstages = 6
@@ -12,7 +65,7 @@ class rkcoeff:
         self.cerr = np.array([37./378.-2825./27648., 0., 250./621.-18575./48384.,
                               125./594.-13525./55296., -277./14336, 512./1771.-0.25])
 
-def rk_time_step(x, dt, xfunc, params):
+def rk54_time_step(x, dt, xfunc, params):
     """
     takes a 4th order Cash-Karp time step for a multi variable ODE
     x is a numpy array of current values
@@ -21,7 +74,7 @@ def rk_time_step(x, dt, xfunc, params):
     returns new values of variables and error estimate
     """
 
-    rk = rkcoeff()
+    rk = rk54()
 
     kx = np.zeros((rk.nstages,x.size))
 
@@ -74,7 +127,7 @@ def rk54(xvals, xfunc, params, ttot, tol = 1.e-6, maxsteps = 1000000, outstride 
     # integrate forward in time
 
     while (t[i] < ttot and i < maxsteps-1):
-        xnew, error = rk_time_step(x[i,:], dt, xfunc, params)
+        xnew, error = rk54_time_step(x[i,:], dt, xfunc, params)
 
         if (error > tol):
             # reject

@@ -8,6 +8,7 @@ def calc_ds_2d(slip, dx, mu, poisson = 0., expand = 0):
     dx = grid spacing (assumed to be uniform)
     mu = shear modulus
     poisson (optional) = poisson's ratio (if mode 2)
+    expand (optional) = number of grid points to pad the slip (to reduce periodic replicas)
     Returns:
     static stress change from fault slip
     """
@@ -33,7 +34,8 @@ def calc_ds_3d(slip_x, slip_y, dx, dy, mu, poisson, expand = 0):
     slip_y = y-displacement (2d array)
     dx = grid spacing (assumed to be uniform)
     mu = shear modulus
-    poisson (optional) = poisson's ratio (if mode 2)
+    poisson = poisson's ratio
+    expand (optional) = number of grid points to pad the slip (to reduce periodic replicas)
     Returns:
     static stress change from fault slip
     """
