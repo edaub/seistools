@@ -10,7 +10,9 @@ def coulomb_2d(sxx, sxy, syy, n, mu):
     Returns:
     coulomb failure function
     """
-    assert mu > 0., "mu must be positive"
+    assert len(n) == 2, "normal vector must have length 2"
+    assert np.abs(np.sqrt(n[0]**2+n[1]**2)-1.) < 1.e-14, "normal vector must be normalized"
+    assert mu >= 0., "mu must be positive"
     
     sn, st = rotate_xy2nt_2d(sxx, sxy, syy, n)
 
@@ -25,6 +27,9 @@ def rotate_xy2nt_2d(sxx, sxy, syy, n):
     Returns:
     normal and shear stress in rotated coordinates
     """
+    assert len(n) == 2, "normal vector must have length 2"
+    assert np.abs(np.sqrt(n[0]**2+n[1]**2)-1.) < 1.e-14, "normal vector must be normalized"
+    
     m = tangent_2d(n)
 
     sn = n[0]**2*sxx+2.*n[0]*n[1]*sxy+n[1]**2*syy

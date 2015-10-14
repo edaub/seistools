@@ -4,21 +4,65 @@ import re
 
 class catalog(object):
     "Class representing a seismic catalog"
-    def __init__(self, nevents, time, mag, lat, lon, depth):
-        "Initialize catalog with arrays holding time, magnitude, latitude, longitude, depth, and declustering info"
+    def __init__(self, *args):
+        """
+        Initialize catalog -- can be done in two different ways:
+        (1) pass filename containing text file formatted with
+        time (as datetime64) latitude longitude depth magnitude
+        (2) nevents, plus arrays holding time (as datetime64), latitude, longitude, depth, magnitude
+        """
+        if len(args) == 1:
+            nevents, time, lat, lon, depth, mag = _read_catalog(args[0])
+        else:
+            nevents, time, lat, lon, depth, mag = args
+        
         assert len(time) == nevents
         assert len(mag) == nevents
         assert len(lat) == nevents
         assert len(lon) == nevents
         assert len(depth) == nevents
         self.nevents = nevents
-        self.time = time
-        self.mag = mag
-        self.lat = lat
-        self.lon = lon
-        self.depth = depth
+        self.time = np.array(time, dtype='datetime64')
+        self.mag = np.array(mag)
+        self.lat = np.array(lat)
+        self.lon = np.array(lon)
+        self.depth = np.array(depth)
         self.declustered = False
         self.aftershock = np.zeros(nevents, dtype = int)
+
+    def _read_catalog(filename):
+        """
+        reads catalog from formatted text file
+        format is time (datetime64) latitude longitude depth magnitude
+        returns number of events and arrays for each data type
+        """
+        f = open(filename, 'r')
+
+        nevents = 0
+
+        for line in f:
+            nevents += 1
+
+        time = np.empty(nevents, dtype='datetime64[ms]')
+        lat = np.empty(nevents)
+        lon = np.empty(nevents)
+        depth = np.empty(nevents)
+        mag = np.empty(nevents)
+
+        f.seek(0)
+
+        for i in range(nevents):
+            event = f.readline()
+            event = event.split()
+            time[i] = event[0]
+            lat[i] = float(event[1])
+            lon[i] = float(event[2])
+            depth[i] = float(event[3])
+            mag[i] = float(event[4])
+
+        f.close()
+
+        return nevents, time, lat, lon, depth, mag
 
     def get_nevents(self):
         "Returns number of events"
@@ -123,14 +167,13 @@ class catalog(object):
     def get_subcatalog(self, indices):
         "Returns a subcatalog given a list of indices"
         if len(indices) == self.nevents:
-            newcat = catalog(np.sum(indices), self.get_time(indices), self.get_mag(indices),
-                       self.get_lat(indices), self.get_lon(indices), self.get_depth(indices))
+            nevents = np.sum(indices)
         else:
             assert min(indices) >= 0
             assert max(indices) < self.nevents
-            newcat = catalog(len(indices), self.get_time(indices), self.get_mag(indices),
-                       self.get_lat(indices), self.get_lon(indices), self.get_depth(indices))
-        return newcat
+            nevents = len(indices)
+        return catalog(nevents, self.get_time(indices), self.get_lat(indices),
+                             self.get_lon(indices), self.get_depth(indices), self.get_mag(indices))
     
     def __str__(self):
         "Returns a string representation of a catalog"
@@ -138,95 +181,6 @@ class catalog(object):
                     +"\nMagnitude = "+str(self.get_mag())+"\nLatitude = "+str(self.get_lat())
                     +"\nLongitude = "+str(self.get_lon())+"\nDepth = "+str(self.get_depth()))
 
-
-def load_catalog(filename, cattype, years = None):
-    """
-    Reads catalog from file of a given type. Some catalogs divide by year, so can optionally
-    specify a range of years to read.
-    Returns catalog object
-    """
-    if cattype == 'norcal':
-        newcat = _load_norcal(filename, years)
-    elif cattype == 'pager':
-        newcat = _load_pager(filename, years)
-    else:
-        raise ValueError ("Unknown catalog type")
-
-    return newcat
-
-def _load_pager(filename, years = None):
-    "Read catalog formatted from PAGER data"
-
-    f = open('/Users/edaub/Documents/2009-2012/bigquakes/data/'+filename, 'r')
-
-    nevents = 0
-
-    for line in f:
-        nevents += 1
-
-    time = np.empty(nevents, dtype='datetime64[ms]')
-    lat = np.empty(nevents)
-    lon = np.empty(nevents)
-    depth = np.empty(nevents)
-    mag = np.empty(nevents)
-
-    f.seek(0)
-
-    for i in range(nevents):
-        event = f.readline()
-        event = event.split()
-        time[i] = event[0]
-        lat[i] = float(event[1])
-        lon[i] = float(event[2])
-        depth[i] = float(event[3])
-        mag[i] = float(event[4])
-
-    f.close()
-
-    return catalog(nevents, time, mag, lat, lon, depth)
-
-def _load_norcal(filename, years = None):
-    "Read Northern California format Catalog (relocated), returning catalog object"
-
-    f = open('/Users/edaub/Documents/2015/roughafter/data/NCAeqDD.v201112.1','r')
-
-    nskip = 0
-    nevents = 0
-
-    for line in f:
-        matchobj = re.match(r'[0-9]{4}',line)
-        if matchobj:
-            nevents += 1
-        else:
-            nskip += 1
-
-    time = np.empty(nevents, dtype='datetime64[ms]')
-    lat = np.empty(nevents)
-    lon = np.empty(nevents)
-    depth = np.empty(nevents)
-    mag = np.empty(nevents)
-
-    f.seek(0)
-
-    for i in range(nskip):
-        f.readline()
-
-    for i in range(nevents):
-        event = f.readline()
-        event = event.split()
-        if event[5] == '60.000':
-            event[4] = str(int(event[4])+1)
-            event[5] = '00.000'
-        time[i] = (event[0]+'-'+event[1].zfill(2)+'-'+event[2].zfill(2)+'T'+event[3].zfill(2)+':'
-                   +event[4].zfill(2)+':'+event[5].zfill(6))
-        lat[i] = float(event[6])
-        lon[i] = float(event[7])
-        depth[i] = float(event[8])
-        mag[i] = float(event[13])
-
-    f.close()
-
-    return catalog(nevents, time, mag, lat, lon, depth)
     
 def calc_b(mag, complete = None):
     "returns b-value calculated via the maximum entropy method"
