@@ -49,26 +49,12 @@ class biaxdata(object):
         f = open(filename, 'r')
 
         a = f.readline()
+        columns = a.split()[1:] # columns preceded by a comment
+        f.close()
 
-        columns = a.split()
+        all_dat = np.loadtxt(filename)
 
-        nlines = 0
-
-        for line in f:
-            nlines += 1
-
-        ncol = len(columns)
-
-        all_dat = np.empty((ncol, nlines))
-
-        f.seek(0)
-
-        f.readline()
-
-        for i in range(nlines):
-            line = f.readline()
-            a = line.split()
-            all_dat[:,i] = np.array([float(x) for x in a])
+        assert(len(columns) == all_dat.shape[0]), "number of columns in header does not match
 
         return columns, all_dat
 
