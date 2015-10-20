@@ -51,9 +51,9 @@ class rk_ls(object):
         return self.C[stage]
 
     def __str__(self):
-        return "RK class with "+str(self.nstages)+" stages"
+        return "RK Low Storage class with "+str(self.nstages)+" stages"
 
-class rk54(object):
+class rk54coeff(object):
     "class holding adaptive RK coefficients"
     def __init__(self):
         self.nstages = 6
@@ -64,6 +64,9 @@ class rk54(object):
         self.c = np.array([37./378., 0., 250./621., 125./594., 0., 512./1771.])
         self.cerr = np.array([37./378.-2825./27648., 0., 250./621.-18575./48384.,
                               125./594.-13525./55296., -277./14336, 512./1771.-0.25])
+
+    def __str__(self):
+        return "RK adaptive 5/4 coefficients"
 
 def rk54_time_step(x, dt, xfunc, params):
     """

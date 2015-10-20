@@ -18,10 +18,11 @@ def generate_profile(npoints, length, alpha, window, h = 1., seed=None):
     k = np.fft.fftfreq(npoints,length/float(npoints-1))
     amp = np.zeros(npoints)
     nflt = npoints//window
-    amp[1:nflt] = 0.1*alpha*prng.rand(nflt-1)*np.abs(k[1:nflt])**(-0.5*(1.+2.*h))*np.sqrt(length)
-    amp[-nflt:] = 0.1*alpha*prng.rand(nflt)*np.abs(k[-nflt:])**(-0.5*(1.+2.*h))*np.sqrt(length)
+    amp[1:] = (alpha*prng.lognormal(mean=0., sigma=0.1, size=npoints-1)*
+               (1.2/length/np.abs(k[1:]))**(0.5*(1.+2.*h)))*length*float(npoints)/2.
+    amp[nflt:-nflt] = 0.
     f = amp*np.exp(np.complex(0., 1.)*phase)
-    f = np.real(np.fft.fft(f))
+    f = np.real(np.fft.ifft(f))
     return f-f[0]-(f[-1]-f[0])/length*np.linspace(0., length, npoints)
 
 def calc_diff(f, dx):

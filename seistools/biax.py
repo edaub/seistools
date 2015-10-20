@@ -54,7 +54,7 @@ class biaxdata(object):
 
         all_dat = np.loadtxt(filename)
 
-        assert(len(columns) == all_dat.shape[0]), "number of columns in header does not match
+        assert(len(columns) == all_dat.shape[0]), "number of columns in header does not match file"
 
         return columns, all_dat
 
