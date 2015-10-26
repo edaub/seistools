@@ -16,7 +16,7 @@ def calc_ds_2d(slip, dx, mu, poisson = 0., expand = 0):
     newlen = len(slip) + 2*expand
     newslip = np.zeros(newlen)
 
-    newslip[expand:expand+len(slip)] = slip[:]
+    newslip[expand:expand+len(slip)] = np.copy(slip)
     
     k = np.fft.fftfreq(newlen, dx)
 
@@ -45,8 +45,8 @@ def calc_ds_3d(slip_x, slip_y, dx, dy, mu, poisson, expand = 0):
 
     newslipx = np.zeros((newlenx, newleny))
     newslipy = np.zeros((newlenx, newleny))
-    newslipx[expand:expand+len(slip_x),expand:expand+len(slip_x[0])] = slip_x
-    newslipy[expand:expand+len(slip_x),expand:expand+len(slip_x[0])] = slip_y
+    newslipx[expand:expand+len(slip_x),expand:expand+len(slip_x[0])] = np.copy(slip_x)
+    newslipy[expand:expand+len(slip_x),expand:expand+len(slip_x[0])] = np.copy(slip_y)
     
     k = np.fft.fftfreq(newlenx, dx)
     m = np.fft.fftfreq(newleny, dy)

@@ -57,54 +57,87 @@ class rk54coeff(object):
     "class holding adaptive RK coefficients"
     def __init__(self):
         self.nstages = 6
-        self.a = np.array([0.2, 0.3, 0.6, 1., 0.875])
-        self.b = np.array([[0., 0., 0., 0., 0.], [0.2, 0., 0., 0., 0.], [3./40., 9./40, 0., 0., 0.],
+        self.A = np.array([[0., 0., 0., 0., 0.], [0.2, 0., 0., 0., 0.], [3./40., 9./40, 0., 0., 0.],
                            [0.3, -0.9, 1.2, 0., 0.], [-11./54., 2.5, -70./27., 35./27., 0.],
                            [1631./55296., 175./512., 575./13824., 44275./110592., 253./4096.]])
-        self.c = np.array([37./378., 0., 250./621., 125./594., 0., 512./1771.])
-        self.cerr = np.array([37./378.-2825./27648., 0., 250./621.-18575./48384.,
+        self.B = np.array([37./378., 0., 250./621., 125./594., 0., 512./1771.])
+        self.Berr = np.array([37./378.-2825./27648., 0., 250./621.-18575./48384.,
                               125./594.-13525./55296., -277./14336, 512./1771.-0.25])
+        self.C = np.array([0., 0.2, 0.3, 0.6, 1., 0.875])
+
+    def get_nstages(self):
+        "returns number of stages"
+        return self.nstages        
+
+    def get_A(self, stage, step):
+        "returns A coefficient for a given stage and step"
+        assert(stage >= 0 and stage < self.nstages)
+        assert(step >= 0 and step < self.nstages-1)
+        return self.A[stage, step]
+
+    def get_B(self, stage):
+        "returns B coefficient for a given stage"
+        assert(stage >= 0 and stage < self.nstages)
+        return self.B[stage]
+
+    def get_Berr(self, stage):
+        "returns Berr coefficient for a given stage"
+        assert(stage >= 0 and stage < self.nstages)
+        return self.Berr[stage]
+
+    def get_C(self, stage):
+        "returns C coefficient for a given stage"
+        assert(stage >= 0 and stage < self.nstages)
+        return self.C[stage]
 
     def __str__(self):
         return "RK adaptive 5/4 coefficients"
 
-def rk54_time_step(x, dt, xfunc, params):
+def rk54_time_step(x, t, dt, xfunc, params, errnorm = None):
     """
     takes a 4th order Cash-Karp time step for a multi variable ODE
     x is a numpy array of current values
-    xfuncs is a function for updating values (returns array-like derivative)
+    t is current time
+    dt is time step
+    xfuncs is a function for updating values (returns array-like derivative of same length as x)
     params holds parameter values (passed to function)
-    returns new values of variables and error estimate
+    errnorm (optional) is a scalar or vector of values used to normalize error
+    by default, errnorm uses the current values of x
+    returns new values of variables and error estimate (unscaled)
     """
+    assert(dt > 0.)
+    assert(x.size == (xfunc(t, x, params)).size)
 
-    rk = rk54()
+    if errnorm is None:
+        errnorm = np.abs(x)+dt*np.abs(xfunc(t, x, params))+1.e-30
 
-    kx = np.zeros((rk.nstages,x.size))
+    rk = rk54coeff()
+
+    kx = np.zeros((rk.get_nstages(),x.size))
 
     # integrate
 
-    for i in range(rk.nstages):
-        xtemp = x[:]
-        for j in range(rk.nstages-1):
-            xtemp += rk.b[i, j]*kx[j,:]
-            print(xtemp)
-        kx[i,:] = dt*xfunc(xtemp, params)
+    for i in range(rk.get_nstages()):
+        xtemp = np.copy(x)
+        for j in range(rk.get_nstages()-1):
+            xtemp += rk.get_A(i, j)*kx[j,:]
+        kx[i,:] = dt*xfunc(t+rk.get_C(i)*dt, xtemp, params)
 
     # calculate new values and error estimate
 
-    xnew = x[:]
+    xnew = np.copy(x)
     xerr = np.zeros(x.size)
 
     for i in range(rk.nstages):
-        xnew += rk.c[i]*kx[i,:]
-        xerr += rk.cerr[i]*kx[i,:]
+        xnew += rk.get_B(i)*kx[i,:]
+        xerr += rk.get_Berr(i)*kx[i,:]
 
-    maxerr = np.amax(np.abs(xerr/x))
+    maxerr = np.amax(np.abs(xerr/errnorm))
 
     return xnew, maxerr
 
 
-def rk54(xvals, xfunc, params, ttot, tol = 1.e-6, maxsteps = 1000000, outstride = 1000000):
+def rk54(xvals, xfunc, params, ttot, tol = 1.e-6, errnorm = None, maxsteps = 1000000, outstride = 1000000):
     """
     integrates a system of ODEs using the Cash-Karp 5/4 adaptive method
     xvals is initial values (array is flattened if it has a shape)
@@ -116,8 +149,8 @@ def rk54(xvals, xfunc, params, ttot, tol = 1.e-6, maxsteps = 1000000, outstride 
     returns time steps and array holding values at each time step
     """
 
-    t = np.empty(maxsteps)
-    x = np.empty((maxsteps, xvals.size))
+    t = np.empty(maxsteps+1)
+    x = np.empty((maxsteps+1, xvals.size))
 
     # set initial conditions
 
@@ -129,8 +162,8 @@ def rk54(xvals, xfunc, params, ttot, tol = 1.e-6, maxsteps = 1000000, outstride 
 
     # integrate forward in time
 
-    while (t[i] < ttot and i < maxsteps-1):
-        xnew, error = rk54_time_step(x[i,:], dt, xfunc, params)
+    while (t[i] < ttot and i < maxsteps):
+        xnew, error = rk54_time_step(x[i,:], t[i], dt, xfunc, params, errnorm)
 
         if (error > tol):
             # reject
@@ -140,7 +173,10 @@ def rk54(xvals, xfunc, params, ttot, tol = 1.e-6, maxsteps = 1000000, outstride 
             i += 1
             x[i,:] = xnew
             t[i] = t[i-1]+dt
-            dtnew = 0.95*dt*np.abs(tol/error)**0.2
+            if error > 0.:
+                dtnew = 0.95*dt*np.abs(tol/error)**0.2
+            else:
+                dtnew = 10.*dt
 
         if (dtnew/dt < 0.1):
             dtnew = 0.1*dt
@@ -157,4 +193,4 @@ def rk54(xvals, xfunc, params, ttot, tol = 1.e-6, maxsteps = 1000000, outstride 
     if (t[i] < ttot):
         print("warning: reached maximum number of time steps")
         
-    return i, t[:i], x[:i,:]
+    return i+1, t[:i+1], x[:i+1,:]

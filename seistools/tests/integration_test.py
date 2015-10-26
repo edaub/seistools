@@ -98,13 +98,51 @@ class test_rk_ls(TestCase):
 
 class test_rk54(TestCase):
 
-    def test_rk54_init(self):
+    def test_rk54coeff(self):
         rk = seistools.integration.rk54coeff()
-        self.assertEqual(rk.nstages, 6)
-        np.testing.assert_array_equal(rk.a, np.array([0.2, 0.3, 0.6, 1., 0.875]))
-        np.testing.assert_array_equal(rk.b, np.array([[0., 0., 0., 0., 0.], [0.2, 0., 0., 0., 0.], [3./40., 9./40, 0., 0., 0.],
+        self.assertEqual(rk.get_nstages(), 6)
+        a_expect = np.array([[0., 0., 0., 0., 0.], [0.2, 0., 0., 0., 0.], [3./40., 9./40, 0., 0., 0.],
                            [0.3, -0.9, 1.2, 0., 0.], [-11./54., 2.5, -70./27., 35./27., 0.],
-                           [1631./55296., 175./512., 575./13824., 44275./110592., 253./4096.]]))
-        np.testing.assert_array_equal(rk.c, np.array([37./378., 0., 250./621., 125./594., 0., 512./1771.]))
-        np.testing.assert_array_equal(rk.cerr, np.array([37./378.-2825./27648., 0., 250./621.-18575./48384.,
-                              125./594.-13525./55296., -277./14336, 512./1771.-0.25]))
+                           [1631./55296., 175./512., 575./13824., 44275./110592., 253./4096.]])
+        for i in range(rk.get_nstages()):
+            for j in range(rk.get_nstages()-1):
+                self.assertEqual(rk.get_A(i,j), a_expect[i,j])
+        b_expect = np.array([37./378., 0., 250./621., 125./594., 0., 512./1771.])
+        for i in range(rk.get_nstages()):
+            self.assertEqual(rk.get_B(i), b_expect[i])
+        berr_expect = np.array([37./378.-2825./27648., 0., 250./621.-18575./48384.,
+                              125./594.-13525./55296., -277./14336, 512./1771.-0.25])
+        for i in range(rk.get_nstages()):
+            self.assertEqual(rk.get_Berr(i), berr_expect[i])
+        c_expect = np.array([0., 0.2, 0.3, 0.6, 1., 0.875])
+        for i in range(rk.get_nstages()):
+            self.assertEqual(rk.get_C(i), c_expect[i])
+
+    def test_rk54_time_step(self):
+        def testder(t, y, params):
+            return -y
+
+        y0 = np.array([1.])
+        t = 0.
+        dt = 0.01
+        y1, err = seistools.integration.rk54_time_step(y0, t, dt, testder, None, errnorm = 1.)
+        y_exact = np.exp(-dt)
+        self.assertAlmostEqual(y_exact, y1[0], delta = dt**4)
+
+        def failder(t, y, params):
+            return np.array([1., 0.])
+
+        self.assertRaises(AssertionError, seistools.integration.rk54_time_step, y0, t, -dt, testder, None)
+        self.assertRaises(AssertionError, seistools.integration.rk54_time_step, y0, t, dt, failder, None)
+
+    def test_rk54(self):
+        def testder(t, y, params):
+            return -y
+
+        y0 = np.array([1.])
+        ttot = 10.
+        tollist = [1.e-6, 1.e-8]
+        for tol in tollist:
+            nt, t, y = seistools.integration.rk54(y0, testder, None, ttot, tol, errnorm = 1.)
+            y_exact = np.exp(-t[-1])
+            self.assertAlmostEqual(y_exact, y[-1,0], delta = tol)
