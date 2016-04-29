@@ -11,6 +11,41 @@ class catalog(object):
         time (as datetime64) latitude longitude depth magnitude
         (2) nevents, plus arrays holding time (as datetime64), latitude, longitude, depth, magnitude
         """
+        def _read_catalog(filename):
+            """
+            reads catalog from formatted text file
+            format is time (datetime64) latitude longitude depth magnitude
+            returns number of events and arrays for each data type
+            """
+            f = open(filename, 'r')
+
+            nevents = 0
+
+            for line in f:
+                nevents += 1
+
+            time = np.empty(nevents, dtype='datetime64[ms]')
+            lat = np.empty(nevents)
+            lon = np.empty(nevents)
+            depth = np.empty(nevents)
+            mag = np.empty(nevents)
+
+            f.seek(0)
+
+            for i in range(nevents):
+                event = f.readline()
+                event = event.split()
+                time[i] = event[0]
+                lat[i] = float(event[1])
+                lon[i] = float(event[2])
+                depth[i] = float(event[3])
+                mag[i] = float(event[4])
+
+            f.close()
+
+            return nevents, time, lat, lon, depth, mag
+
+        # get attributes from file or as read in
         if len(args) == 1:
             nevents, time, lat, lon, depth, mag = _read_catalog(args[0])
         else:
@@ -29,40 +64,6 @@ class catalog(object):
         self.depth = np.array(depth)
         self.declustered = False
         self.aftershock = np.zeros(nevents, dtype = int)
-
-    def _read_catalog(filename):
-        """
-        reads catalog from formatted text file
-        format is time (datetime64) latitude longitude depth magnitude
-        returns number of events and arrays for each data type
-        """
-        f = open(filename, 'r')
-
-        nevents = 0
-
-        for line in f:
-            nevents += 1
-
-        time = np.empty(nevents, dtype='datetime64[ms]')
-        lat = np.empty(nevents)
-        lon = np.empty(nevents)
-        depth = np.empty(nevents)
-        mag = np.empty(nevents)
-
-        f.seek(0)
-
-        for i in range(nevents):
-            event = f.readline()
-            event = event.split()
-            time[i] = event[0]
-            lat[i] = float(event[1])
-            lon[i] = float(event[2])
-            depth[i] = float(event[3])
-            mag[i] = float(event[4])
-
-        f.close()
-
-        return nevents, time, lat, lon, depth, mag
 
     def get_nevents(self):
         "Returns number of events"
