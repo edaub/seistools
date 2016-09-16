@@ -1,6 +1,5 @@
 import numpy as np
 from datetime import datetime
-import re
 
 class catalog(object):
     "Class representing a seismic catalog"
