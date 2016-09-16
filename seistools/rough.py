@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.integrate import simps
 
-def generate_profile(npoints, length, alpha, window, h = 1., seed=None, sd = 1.e-1):
+def generate_profile(npoints, length, alpha, window, h = 1., seed=None):
     """
     Generates fractal fault profile with zero mean and a given amplitude/wavelength ratio
     Inputs:
@@ -18,20 +18,14 @@ def generate_profile(npoints, length, alpha, window, h = 1., seed=None, sd = 1.e
     k = 2.*np.pi*np.fft.fftfreq(npoints,length/float(npoints-1))
     amp = np.zeros(npoints)
     nflt = npoints//window
-#    amp[1:] = (alpha*prng.lognormal(mean=0., sigma=0.1, size=npoints-1)*
-#               (1.2/length/np.abs(k[1:]))**(0.5*(1.+2.*h)))*length*float(npoints)/2.
     if npoints%2 == 0:
         nfreq = npoints//2+1
     else:
         nfreq = (npoints-1)//2+1
-    sign = prng.choice([-1., 1.], nfreq-1)
-    amp[1:nfreq] = (sign*prng.lognormal(mean=0., sigma=sd,size=nfreq-1)*
-        alpha*(2.*np.pi/np.abs(k[1:nfreq]))**1.5*np.sqrt(np.pi/length)/2.*float(npoints))
-    amp[-nfreq+1:] = -amp[1:nfreq]
+    amp[1:] = (alpha*(2.*np.pi/np.abs(k[1:]))**(0.5*(1.+2.*h))*np.sqrt(np.pi/length)/2.*float(npoints))
     amp[nflt+1:-nflt] = 0.
-    f = amp*np.complex(0.,1.) #*np.exp(np.complex(0., 1.)*phase)
-    fund = np.fft.fft(prng.choice([-1., 1.])*prng.lognormal(mean=0., sigma=sd)*
-                      alpha*length*np.sin(np.linspace(0., length, npoints)*np.pi/length))
+    f = amp*np.exp(np.complex(0., 1.)*phase)
+    fund = np.fft.fft(prng.choice([-1., 1.])*alpha*length*np.sin(np.linspace(0., length, npoints)*np.pi/length))
     f = np.real(np.fft.ifft(f+fund))
     return f-f[0]-(f[-1]-f[0])/length*np.linspace(0., length, npoints)
 
