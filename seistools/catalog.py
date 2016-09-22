@@ -1,5 +1,6 @@
 import numpy as np
 from datetime import datetime
+from scipy.stats import mode
 
 class catalog(object):
     "Class representing a seismic catalog"
@@ -185,10 +186,15 @@ class catalog(object):
 def calc_b(mag, complete = None):
     "returns b-value calculated via the maximum entropy method"
 
-    if complete is None:
-        mag_copy = mag[:]
-    else:
-        mag_copy = mag[mag >= complete]
+    assert len(mag) > 1, "array of magnitude values must be longer than 1"
+    if not complete is None:
+        assert type(float(complete)) is float, "completeness level must be a number"
+
+    mag_copy = np.array(mag)
+
+    if not complete is None:
+        complete = float(complete)
+        mag_copy = mag_copy[mag_copy >= complete]
 
     mavg = np.mean(mag_copy)
     mc = np.min(mag_copy)-0.05
@@ -200,21 +206,30 @@ def mc_maxcurv(mag):
     returns completeness magnitude and b-value
     """
 
-    mc = mode(mag)[0][0]
-    b = calc_b(mag, mc)
+    assert len(mag) > 1, "array of magnitude values must be longer than 1"
+
+    mag_copy = np.array(mag)
+
+    mc = mode(mag_copy)[0][0]
+    b = calc_b(mag_copy, mc)
 
     return mc, b
 
 def delta_b(mag, complete = None):
     "returns uncertainty in b-value"
 
-    if complete is None:
-        mag_copy = mag[:]
-    else:
-        mag_copy = mag[mag >= complete]
+    assert len(mag) > 1, "array of magnitude values must be longer than 1"
+    if not complete is None:
+        assert type(float(complete)) is float, "completeness level must be a number"
+
+    mag_copy = np.array(mag)
+
+    if not complete is None:
+        complete = float(complete)
+        mag_copy = mag_copy[mag_copy >= complete]
     
-    b = calc_b(mag)
-    return 2.3*b**2*np.std(mag)/np.sqrt(float(len(mag)-1))
+    b = calc_b(mag_copy)
+    return 2.3*b**2*np.std(mag_copy)/np.sqrt(float(len(mag_copy)-1))
 
 def mc_bvalstab(mag):
     """
@@ -222,18 +237,22 @@ def mc_bvalstab(mag):
     returns completeness magnitude and b-value
     """
 
-    mc = min(mag)-0.1
+    assert len(mag) > 1, "array of magnitude values must be longer than 1"
+
+    mag_copy = np.array(mag)
+    
+    mc = min(mag_copy)-0.1
     bavg = 1.5
     bval = 1.
     db = 0.
 
     while np.abs(bavg-bval) > db:
         mc += 0.1
-        bval = calc_b(mag, mc)
-        db = delta_b(mag, mc)
+        bval = calc_b(mag_copy, mc)
+        db = delta_b(mag_copy, mc)
         bavg = 0.
         for j in range(6):
             mctemp = mc+float(j)*0.1
-            bavg += calc_b(mag, mctemp)/6.
+            bavg += calc_b(mag_copy, mctemp)/6.
 
-    return mc, b
+    return mc, bval
