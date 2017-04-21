@@ -9,20 +9,22 @@ def coulomb_2d(sxx, sxy, syy, n, mu, orientation=None):
     mu (> 0) is friction coefficient
     orientation (optional) is a string indicating how you would like to compute the tangent vector
                     In all cases, the hypothetical second tangent vector is in the +z direction
-                    "x" indicates that the tangent vector is defined by n x t1 = z (x is right handed cross product,
-                          chosen so that faults with a purely +x normal will give a tangent in the +y direction).
-                          This means that a positive Coulomb function leads to left lateral slip on the fault
-                    "y" indicates that the tangent vector is defined by t1 x n = z (so that a normal in the +y
-                          direction will give a tangent vector in the +x direction). This means that a positive
-                          Coulomb function leads to right lateral slip on the fault
-                    None indicates that the "y" convention is used (default)
+                    "left" or "x" indicates that the tangent vector is defined by n x t1 = z (x is right handed
+                          cross product, chosen so that faults with a purely +x normal will give a tangent in
+                          the +y direction). This means that a positive Coulomb function leads to left lateral
+                          slip on the fault.
+                    "right" or "y" indicates that the tangent vector is defined by t1 x n = z (so that a normal
+                          in the +y direction will give a tangent vector in the +x direction). This means that a
+                          positive Coulomb function leads to right lateral slip on the fault.
+                    None indicates that the "right" or "y" convention is used (default)
     Returns:
     coulomb failure function
     """
     assert len(n) == 2, "normal vector must have length 2"
     assert np.isclose(np.sqrt(n[0]**2+n[1]**2),1.), "normal vector must be normalized"
     assert mu >= 0., "mu must be positive"
-    assert (orientation == "x" or orientation == "y" or orientation == None)
+    assert (orientation == "right" or orientation == "left" or
+            orientation == "x" or orientation == "y" or orientation == None)
     
     sn, st = rotate_xy2nt_2d(sxx, sxy, syy, n, orientation)
 
@@ -34,12 +36,23 @@ def rotate_xy2nt_2d(sxx, sxy, syy, n, orientation=None):
     Inputs:
     stress components sxx, sxy, syy (negative in compression), can be arrays
     n is normal vector for receiver fault (must have length 2)
+    orientation (optional) is a string indicating how you would like to compute the tangent vector
+                In all cases, the hypothetical second tangent vector is in the +z direction
+                "left" or "x" indicates that the tangent vector is defined by n x t1 = z (x is right handed
+                      cross product, chosen so that faults with a purely +x normal will give a tangent in
+                      the +y direction). This means that a positive Coulomb function leads to left lateral
+                      slip on the fault.
+                "right" or "y" indicates that the tangent vector is defined by t1 x n = z (so that a normal
+                      in the +y direction will give a tangent vector in the +x direction). This means that a
+                      positive Coulomb function leads to right lateral slip on the fault.
+                None indicates that the "right" or "y" convention is used (default)
     Returns:
     normal and shear stress in rotated coordinates
     """
     assert len(n) == 2, "normal vector must have length 2"
     assert np.isclose(np.sqrt(n[0]**2+n[1]**2),1.), "normal vector must be normalized"
-    assert (orientation == "x" or orientation == "y" or orientation == None)
+    assert (orientation == "right" or orientation == "left" or
+            orientation == "x" or orientation == "y" or orientation == None)
     
     m = tangent_2d(n)
 
@@ -50,14 +63,27 @@ def rotate_xy2nt_2d(sxx, sxy, syy, n, orientation=None):
 
 
 def tangent_2d(n, orientation=None):
-    "Creates returns vector orthogonal to input vector (of length 2)"
+    """
+    Returns vector orthogonal to input vector n (must have length 2)
+    orientation (optional) is a string indicating how you would like to compute the tangent vector
+            In all cases, the hypothetical second tangent vector is in the +z direction
+            "left" or "x" indicates that the tangent vector is defined by n x t1 = z (x is right handed
+                  cross product, chosen so that faults with a purely +x normal will give a tangent in
+                  the +y direction). This means that a positive Coulomb function leads to left lateral
+                  slip on the fault.
+            "right" or "y" indicates that the tangent vector is defined by t1 x n = z (so that a normal
+                  in the +y direction will give a tangent vector in the +x direction). This means that a
+                  positive Coulomb function leads to right lateral slip on the fault.
+            None indicates that the "right" or "y" convention is used (default)
+    """
     assert len(n) == 2, "normal vector must be of length 2"
     assert np.isclose(np.sqrt(n[0]**2+n[1]**2),1.), "normal vector must be normalized"
-    assert (orientation == "x" or orientation == "y" or orientation == None)
+    assert (orientation == "right" or orientation == "left" or
+            orientation == "x" or orientation == "y" or orientation == None)
     
     m = np.empty(2)
     
-    if orientation == "x":
+    if (orientation == "x" or orientation == "left"):
         m[1] = n[0]/np.sqrt(n[0]**2+n[1]**2)
         m[0] = -n[1]/np.sqrt(n[0]**2+n[1]**2)
     else:
