@@ -13,6 +13,14 @@ def generate_profile(npoints, length, alpha, window, h = 1., seed=None):
     Returns:
     heights of fault profile (array-like)
     """
+    npoints = int(npoints)
+    window = int(window)
+    length = float(length)
+    alpha = float(alpha)
+    h = float(h)
+    if not seed is None:
+        seed = int(seed)
+    
     prng = np.random.RandomState(seed)
     phase = 2.*np.pi*prng.rand(npoints)
     k = 2.*np.pi*np.fft.fftfreq(npoints,length/float(npoints-1))
