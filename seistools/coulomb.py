@@ -54,7 +54,7 @@ def rotate_xy2nt_2d(sxx, sxy, syy, n, orientation=None):
     assert (orientation == "right" or orientation == "left" or
             orientation == "x" or orientation == "y" or orientation == None)
     
-    m = tangent_2d(n)
+    m = tangent_2d(n, orientation)
 
     sn = n[0]**2*sxx+2.*n[0]*n[1]*sxy+n[1]**2*syy
     st = n[0]*m[0]*sxx+(m[0]*n[1]+n[0]*m[1])*sxy+n[1]*m[1]*syy
