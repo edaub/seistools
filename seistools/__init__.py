@@ -1,7 +1,10 @@
 """
 seistools is a collection of python functions and classes for analyzing earthquake data
+written by Eric Daub. The tools are a bit eclectic, but span earthquake catalogs,
+finite source models, friction experiments, friction laws, fault mechanics, and numerical
+integration.
 
-requires numpy and scipy
+The package requires numpy and scipy, and should work for Python 2 or 3.
 """
 
 from . import biax
