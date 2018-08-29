@@ -1,10 +1,20 @@
 import numpy as np
 
 class biaxdata(object):
-    "class representing biax data"
+    """
+    Class representing data collected on the Penn State biaxial apparatus
+
+    The class contains various arrays holding values collected during the experiment
+    for the displacement, shear stress, layer dilation, and other relevant information.
+    """
 
     def __init__(self, filename, ds_thresh = 0.1):
-        "initialize data and calculate indices for stick-slip events"
+        """
+        Initialize data and calculate indices for stick-slip events
+
+        Requires a filename holding the ASCII data collected on the appratus
+        Optional parameter ``ds_thresh`` is used in calculating stick-slip event occurrence
+        """
 
         columns, all_dat = self._load_biax(filename)
 
@@ -44,7 +54,13 @@ class biaxdata(object):
         self.nds, self.startds, self.ids = self._calc_stickslip(self.s, ds_thresh)
 
     def _load_biax(self, filename):
-        "loads biax data, returning list of column names and full data array"
+        """
+        Loads biax data
+
+        Given a filename where the data is held, the function loads the data from the
+        file. Returns list of column names and data array, which are then loaded
+        into the main ``biaxdata`` class
+        """
 
         f = open(filename, 'r')
 
@@ -59,7 +75,13 @@ class biaxdata(object):
         return columns, all_dat
 
     def _calc_stickslip(self, s, s_thresh):
-        "analyzes stick-slip data, returning a list containing indices of starts and ends of events"
+        """
+        Analyzes stick-slip data
+        
+        Takes stress data as input and a threshold for stress drops, and
+        returns a list containing indices of starts and ends of events. From these start
+        and stop values, any relevant stick-slip event data can be calculated.
+        """
 
         assert (s_thresh > 0.), "stress drop must be positive"
 
@@ -88,17 +110,23 @@ class biaxdata(object):
         return nds, np.array(startds), np.array(ids)
 
     def get_nt(self):
-        "returns number of time points"
+        """
+        Returns the number of time points in the dataset
+        """
 
         return self.nt
 
     def get_u(self):
-        "returns load point displacement"
+        """
+        Returns the numpy array holding load point displacement
+        """
 
         return self.u
 
     def get_t(self):
-        "returns time"
+        """
+        Returns the numpy array holding time data
+        """
 
         return self.t
 
@@ -242,7 +270,9 @@ class biaxdata(object):
         return slip
 
     def get_dhdu(self, npoints = 100, delay = 0):
-        "calculates dilation rate with slip"
+        """
+        Calculates dilation rate with slip based on the layer thickness, slip and 
+        """
 
         slip = self.get_slip(npoints)
         dhdu = []
@@ -255,7 +285,9 @@ class biaxdata(object):
         return np.array(dhdu)
 
     def __str__(self):
-        "returns string representation of biax data"
+        """
+        Returns a string representation of the biax data
+        """
 
         return ("Bi-ax data with "+str(self.nt)+" data points\nt = "+str(self.t)+"\nu = "+str(self.u)+
                 "\ns = "+str(self.s)+"\nh = "+str(self.h)+"\nsigma = "+str(self.sigma))
