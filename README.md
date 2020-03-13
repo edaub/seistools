@@ -25,7 +25,7 @@ Eric Daub (edaub@turing.ac.uk).
 
 The code can be installed in the usual way by running `setup.py` in the shell:
 
-  $ python setup.py install
+    $ python setup.py install
   
 ## Tests
 
