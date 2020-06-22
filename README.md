@@ -23,6 +23,10 @@ Eric Daub (edaub@turing.ac.uk).
 
 ## Installation
 
+Dependencies can be installed using the `requirements.txt` file:
+
+    $ pip install -r requirements.txt
+
 The code can be installed in the usual way by running `setup.py` in the shell:
 
     $ python setup.py install
